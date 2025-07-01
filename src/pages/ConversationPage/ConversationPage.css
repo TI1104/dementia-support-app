@@ -1,0 +1,114 @@
+/* src/pages/ConversationPage/ConversationPage.css */
+.conversation-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.page-intro {
+  text-align: center;
+  margin-bottom: 32px;
+  padding: 32px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  color: white;
+  box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+}
+
+.page-intro h2 {
+  margin-bottom: 16px;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.intro-text {
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 24px;
+  opacity: 0.9;
+}
+
+.feature-highlights {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.highlight-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 25px;
+  backdrop-filter: blur(10px);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.highlight-icon {
+  font-size: 18px;
+}
+
+.memory-trigger-notice {
+  position: fixed;
+  bottom: 100px;
+  right: 20px;
+  background: linear-gradient(135deg, #4caf50, #45a049);
+  color: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(76, 175, 80, 0.3);
+  max-width: 300px;
+  animation: slideInRight 0.5s ease-out;
+  z-index: 1000;
+}
+
+.notice-content h4 {
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.notice-content p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .conversation-page {
+    padding: 0 15px;
+  }
+  
+  .page-intro {
+    padding: 24px 20px;
+  }
+  
+  .page-intro h2 {
+    font-size: 24px;
+  }
+  
+  .feature-highlights {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .memory-trigger-notice {
+    bottom: 80px;
+    right: 15px;
+    left: 15px;
+    max-width: none;
+  }
+}

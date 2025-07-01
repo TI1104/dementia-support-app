@@ -1,8 +1,10 @@
-// src/pages/MemoryPage/MemoryPage.tsx
-import React, { FC } from 'react';
+import React, { FC, useEffect } from 'react';
 import Layout from '../../components/Layout/Layout';
+import { useMemorySystem } from '../../hooks/useMemorySystem'; // ← 追加
 
 const MemoryPage: FC = () => {
+  const { memories } = useMemorySystem(); // ← 追加
+
   return (
     <Layout title="思い出アルバム">
       <div style={{ textAlign: 'center', padding: '50px' }}>

@@ -4,6 +4,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage/HomePage';
 import ConversationPage from './pages/ConversationPage/ConversationPage';
 import Navigation from './components/Navigation/Navigation';
+import MemoriesPage from './pages/MemoryPage/MemoryPage'; // ページコンポーネントをインポート
+
 
 function App() {
   console.log('🚀 認知症者コミュニケーション支援システム開始');
@@ -14,6 +16,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/conversation" element={<ConversationPage />} />
+          <Route path="/memories" element={<MemoriesPage />} />
         </Routes>
         <Navigation />
       </div>
