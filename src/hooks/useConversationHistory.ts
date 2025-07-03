@@ -1,7 +1,7 @@
 // src/hooks/useConversationHistory.ts
+
 import { useState, useEffect, useCallback } from 'react';
 import { Conversation } from '../types/index';
-
 
 interface ConversationAnalysis {
   similarity: number;
@@ -11,7 +11,9 @@ interface ConversationAnalysis {
 
 export const useConversationHistory = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [repeatDetected, setRepeatDetected] = useState<boolean>(false);
+  const [repeatDetected, setRepeatDetected] = useState(false);
+  const [lastAddedContent, setLastAddedContent] = useState('');
+  const [lastAddedTime, setLastAddedTime] = useState(0);
 
   // LocalStorageから会話履歴を読み込み
   useEffect(() => {
@@ -44,50 +46,91 @@ export const useConversationHistory = () => {
     const normalize = (text: string) => text.toLowerCase().replace(/[、。！？\s]/g, '');
     const normalized1 = normalize(text1);
     const normalized2 = normalize(text2);
-
+    
     if (normalized1 === normalized2) return 1.0;
     if (normalized1.length === 0 || normalized2.length === 0) return 0.0;
 
-    // 単語レベルでの類似度計算
-// ...existing code...
-    // 単語レベルでの類似度計算
-// ...existing code...
-    // 単語レベルでの類似度計算
-    const words1 = normalized1.split('');
-    const words2 = normalized2.split('');
-// ...existing code...
-    // 文字レベルでの類似度計算（重複カウントなし）
-// ...existing code...
-    // 文字レベルでの類似度計算（重複カウントなし）
-// ...existing code...
-// ...existing code...
-    // 文字レベルでの類似度計算（重複カウントなし）
     const set1 = new Set(normalized1.split(''));
     const set2 = new Set(normalized2.split(''));
     const intersection = Array.from(set1).filter(char => set2.has(char));
-    // Setを配列に変換してから結合
     const unionArray = Array.from(set1).concat(Array.from(set2));
     const unionSize = new Set(unionArray).size;
 
-    if (unionSize === 0) return 0.0; // 0除算防止
-
+    if (unionSize === 0) return 0.0;
     return intersection.length / unionSize;
-// ...existing code...
-// ...existing code...
-// ...existing code...
-
-    if (unionSize === 0) return 0.0; // 0除算防止
-
-    return intersection.length / unionSize;
-// ...existing code...
-
-
-
-  
-// ...existing code...
   }, []);
 
-  // 会話の分析（第2論文の機能分析を参考）
+  // 改善された連続重複パターンの検出と除去
+  const removeConsecutiveDuplicates = useCallback((text: string): string => {
+    const trimmedText = text.trim();
+    console.log('🔍 重複検出開始:', trimmedText);
+
+    // 段階1: 正規表現による直接的な重複検出
+    const duplicatePattern = /(.{3,}?)\1+/g;
+    const match = trimmedText.match(duplicatePattern);
+    
+    if (match) {
+      const firstMatch = match[0];
+      const originalLength = firstMatch.length;
+      const halfLength = Math.floor(originalLength / 2);
+      const result = firstMatch.substring(0, halfLength);
+      console.log('🚫 正規表現重複検出:', trimmedText, '→', result);
+      return result;
+    }
+
+    // 段階2: 単語レベルでの分割と比較（空白がある場合）
+    const words = trimmedText.split(/[、。！？\s]+/).filter(w => w.length > 0);
+    if (words.length >= 2) {
+      const halfLength = Math.floor(words.length / 2);
+      const firstHalf = words.slice(0, halfLength).join('');
+      const secondHalf = words.slice(halfLength, halfLength * 2).join('');
+      
+      if (firstHalf === secondHalf && firstHalf.length > 2) {
+        console.log('🚫 単語レベル重複検出:', trimmedText, '→', words.slice(0, halfLength).join(''));
+        return words.slice(0, halfLength).join('');
+      }
+
+      // より柔軟な重複検出（部分一致）
+      for (let i = 1; i <= halfLength; i++) {
+        const segment = words.slice(0, i).join('');
+        const nextSegment = words.slice(i, i * 2).join('');
+        if (segment === nextSegment && segment.length > 2) {
+          console.log('🚫 部分重複パターンを検出:', trimmedText, '→', words.slice(0, i).join(''));
+          return words.slice(0, i).join('');
+        }
+      }
+    }
+
+    // 段階3: 文字レベルでの重複検出（空白がない場合のフォールバック）
+    const chars = trimmedText.split('');
+    const halfLength = Math.floor(chars.length / 2);
+    
+    if (halfLength > 2) {
+      const firstHalf = chars.slice(0, halfLength).join('');
+      const secondHalf = chars.slice(halfLength, halfLength * 2).join('');
+      
+      if (firstHalf === secondHalf) {
+        console.log('🚫 文字レベル重複検出:', trimmedText, '→', firstHalf);
+        return firstHalf;
+      }
+    }
+
+    // 段階4: 部分文字列の繰り返し検出
+    for (let i = 3; i <= halfLength; i++) {
+      const segment = chars.slice(0, i).join('');
+      const nextSegment = chars.slice(i, i * 2).join('');
+      
+      if (segment === nextSegment && segment.length > 2) {
+        console.log('🚫 部分文字列重複検出:', trimmedText, '→', segment);
+        return segment;
+      }
+    }
+
+    console.log('✅ 重複なし:', trimmedText);
+    return trimmedText;
+  }, []);
+
+  // 会話の分析
   const analyzeConversation = useCallback((content: string): ConversationAnalysis => {
     const trimmedContent = content.trim();
     if (!trimmedContent) {
@@ -97,12 +140,9 @@ export const useConversationHistory = () => {
     let maxSimilarity = 0;
     let repeatCount = 0;
 
-    // 過去の会話との類似度を計算
     conversations.forEach(conv => {
       const similarity = calculateSimilarity(trimmedContent, conv.content);
       maxSimilarity = Math.max(maxSimilarity, similarity);
-      
-      // 類似度0.7以上を繰り返しと判定（第2論文の閾値を参考）
       if (similarity >= 0.7) {
         repeatCount++;
       }
@@ -126,42 +166,53 @@ export const useConversationHistory = () => {
     const trimmedContent = content.trim();
     if (!trimmedContent) return;
 
-    const analysis = analyzeConversation(trimmedContent);
-    
+    // 連続重複パターンを除去
+    const cleanedContent = removeConsecutiveDuplicates(trimmedContent);
+
+    // 重複検出: 同じ内容が3秒以内に追加されようとした場合は無視
+    const now = Date.now();
+    if (cleanedContent === lastAddedContent && now - lastAddedTime < 3000) {
+      console.log('🚫 重複したセリフを検出、追加をスキップ:', cleanedContent);
+      return;
+    }
+
+    const analysis = analyzeConversation(cleanedContent);
+
     const newConversation: Conversation = {
-      id: Date.now().toString(),
-      content: trimmedContent,
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      content: cleanedContent,
       timestamp: new Date(),
       isRepeated: analysis.isRepeated,
       category: analysis.category,
       similarity: analysis.similarity
     };
 
-    setConversations(prev => [newConversation, ...prev].slice(0, 100)); // 最新100件まで保持
-    
+    setConversations(prev => [newConversation, ...prev].slice(0, 100));
+    setLastAddedContent(cleanedContent);
+    setLastAddedTime(now);
+
     // 繰り返し検出の通知
     if (analysis.isRepeated) {
       setRepeatDetected(true);
-      console.log('🔄 繰り返し会話を検出しました:', trimmedContent);
-      
-      // 3秒後にフラグをリセット
+      console.log('🔄 繰り返し会話を検出しました:', cleanedContent);
       setTimeout(() => setRepeatDetected(false), 3000);
     }
 
     console.log('💬 新しい会話を追加:', {
-      content: trimmedContent,
+      content: cleanedContent,
       category: analysis.category,
       similarity: analysis.similarity
     });
-  }, [analyzeConversation]);
+  }, [analyzeConversation, lastAddedContent, lastAddedTime, removeConsecutiveDuplicates]);
 
   const clearHistory = useCallback(() => {
     setConversations([]);
+    setLastAddedContent('');
+    setLastAddedTime(0);
     localStorage.removeItem('conversation-history');
     console.log('🗑️ 会話履歴をクリアしました');
   }, []);
 
-  // 統計情報の計算
   const getStats = useCallback(() => {
     const total = conversations.length;
     const frequent = conversations.filter(c => c.category === 'frequent').length;
@@ -182,6 +233,7 @@ export const useConversationHistory = () => {
     addConversation,
     clearHistory,
     repeatDetected,
-    getStats
+    getStats,
+    removeConsecutiveDuplicates
   };
 };

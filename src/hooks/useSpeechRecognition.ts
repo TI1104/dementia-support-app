@@ -16,13 +16,15 @@ interface UseSpeechRecognitionReturn {
   resetTranscript: () => void;
   error: string | null;
   confidence: number;
+  isFinal: boolean; // 新しく追加
 }
 
 export const useSpeechRecognition = (): UseSpeechRecognitionReturn => {
-  const [transcript, setTranscript] = useState<string>('');
-  const [isListening, setIsListening] = useState<boolean>(false);
+  const [transcript, setTranscript] = useState('');
+  const [isListening, setIsListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confidence, setConfidence] = useState<number>(0);
+  const [confidence, setConfidence] = useState(0);
+  const [isFinal, setIsFinal] = useState(false); // 新しく追加
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   // ブラウザサポートの確認
@@ -33,8 +35,8 @@ export const useSpeechRecognition = (): UseSpeechRecognitionReturn => {
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognitionRef.current = new SpeechRecognition();
-
     const recognition = recognitionRef.current;
+
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'ja-JP';
@@ -50,24 +52,32 @@ export const useSpeechRecognition = (): UseSpeechRecognitionReturn => {
       let finalTranscript = '';
       let interimTranscript = '';
       let maxConfidence = 0;
+      let hasFinalResult = false;
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         const resultText = result[0].transcript;
-        const resultConfidence = result[0].confidence;
+        const resultConfidence = result[0].confidence || 0.5;
 
         if (result.isFinal) {
           finalTranscript += resultText;
           maxConfidence = Math.max(maxConfidence, resultConfidence);
+          hasFinalResult = true;
         } else {
           interimTranscript += resultText;
         }
       }
 
+      // 最終結果または中間結果を設定
       if (finalTranscript) {
         setTranscript(prev => prev + finalTranscript);
         setConfidence(maxConfidence);
+        setIsFinal(true); // 発話確定
         console.log('✅ 認識結果:', finalTranscript, '信頼度:', maxConfidence);
+      } else {
+        setTranscript(interimTranscript);
+        setConfidence(maxConfidence);
+        setIsFinal(false); // 認識中
       }
     };
 
@@ -110,6 +120,7 @@ export const useSpeechRecognition = (): UseSpeechRecognitionReturn => {
     setTranscript('');
     setError(null);
     setConfidence(0);
+    setIsFinal(false);
   }, []);
 
   return {
@@ -120,6 +131,7 @@ export const useSpeechRecognition = (): UseSpeechRecognitionReturn => {
     stopListening,
     resetTranscript,
     error,
-    confidence
+    confidence,
+    isFinal // 新しく追加
   };
 };

@@ -5,7 +5,8 @@ import HomePage from './pages/HomePage/HomePage';
 import ConversationPage from './pages/ConversationPage/ConversationPage';
 import Navigation from './components/Navigation/Navigation';
 import MemoriesPage from './pages/MemoryPage/MemoryPage'; // ページコンポーネントをインポート
-
+import './styles/components.css';
+import './styles/globals.css';
 
 function App() {
   console.log('🚀 認知症者コミュニケーション支援システム開始');
